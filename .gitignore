@@ -1,0 +1,9 @@
+outputs/
+data/
+*.pt
+*.bin
+*.jsonl
+__pycache__/
+*.egg-info/
+.env
+wandb/

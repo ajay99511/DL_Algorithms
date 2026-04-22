@@ -1,0 +1,35 @@
+# TransformerConfig defaults — mirrors pretrain/config.py
+
+# Inherited from BaseConfig
+seed: 42
+output_dir: "outputs/"
+log_every_n_steps: 10
+checkpoint_every_n_epochs: 1
+
+# Data
+dataset_name: "roneneldan/TinyStories"
+max_stories: 50000
+val_fraction: 0.05
+context_length: 256
+vocab_size: 8000
+
+# Model
+n_layers: 4
+n_heads: 4
+d_model: 128
+d_ff: 512
+dropout: 0.1
+
+# Training
+batch_size: 16
+grad_accum_steps: 16
+max_steps: 10000
+learning_rate: 0.0003
+weight_decay: 0.1
+grad_clip_norm: 1.0
+warmup_steps: 500
+
+# Paths
+tokenizer_dir: "outputs/project2/tokenizer"
+checkpoint_dir: "outputs/project2/checkpoints"
+log_path: "outputs/project2/experiment_log.jsonl"

@@ -1,0 +1,15 @@
+seed: 42
+output_dir: outputs/project6
+log_every_n_steps: 10
+checkpoint_every_n_epochs: 1
+models:
+  - gpt2
+  - EleutherAI/pythia-160m
+tasks:
+  arc_challenge: 25
+  hellaswag: 10
+  mmlu: 5
+  truthfulqa_mc: 0
+log_path: outputs/project6/experiment_log.jsonl
+report_csv: outputs/project6/results.csv
+report_md: outputs/project6/results.md

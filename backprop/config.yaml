@@ -1,0 +1,30 @@
+# MLPConfig defaults — mirrors backprop/config.py
+
+# Inherited from BaseConfig
+seed: 42
+output_dir: "outputs/"
+log_every_n_steps: 10
+checkpoint_every_n_epochs: 1
+
+# Data
+test_size: 0.1
+val_size: 0.1
+
+# Model
+hidden_dims: [128, 64, 32]
+dropout: 0.1
+init_strategy: "kaiming"
+
+# Training
+batch_size: 32
+grad_accum_steps: 4
+max_epochs: 50
+learning_rate: 0.0003
+weight_decay: 0.01
+grad_clip_norm: 1.0
+warmup_epochs: 5
+
+# Paths
+checkpoint_dir: "outputs/project1/checkpoints"
+log_path: "outputs/project1/experiment_log.jsonl"
+plot_dir: "outputs/project1/plots"

@@ -1,0 +1,35 @@
+# AlignmentConfig defaults — Project 3: SFT + RLHF
+seed: 42
+output_dir: "outputs/"
+log_every_n_steps: 10
+checkpoint_every_n_epochs: 1
+
+# Base model
+base_model_name: "gpt2"
+
+# SFT
+sft_dataset: "tatsu-lab/alpaca"
+sft_val_fraction: 0.1
+sft_max_epochs: 3
+sft_lr: 2.0e-5
+sft_batch_size: 8
+sft_grad_accum_steps: 4
+
+# Reward model
+rm_dataset: "Anthropic/hh-rlhf"
+rm_max_epochs: 2
+rm_lr: 1.0e-5
+
+# RLHF / PPO
+ppo_steps: 500
+ppo_lr: 1.0e-6
+kl_coeff: 0.1
+reward_clip_bound: 5.0
+
+# RLAIF
+rlaif_model: "google/flan-t5-small"
+
+# Paths
+checkpoint_dir: "outputs/project3/checkpoints"
+log_path: "outputs/project3/experiment_log.jsonl"
+comparison_file: "outputs/project3/stage_comparison.json"

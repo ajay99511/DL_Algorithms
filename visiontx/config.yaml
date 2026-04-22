@@ -1,0 +1,32 @@
+# Project 4: Vision Transformer — default configuration
+seed: 42
+output_dir: "outputs/project4"
+log_every_n_steps: 10
+checkpoint_every_n_epochs: 1
+
+# Data
+dataset: "cifar10"
+
+# Model
+image_size: 32
+patch_size: 4
+n_channels: 3
+n_classes: 10
+d_model: 128
+n_heads: 4
+n_layers: 6
+d_ff: 512
+dropout: 0.1
+
+# Training
+batch_size: 64
+max_epochs: 30
+learning_rate: 0.0003
+weight_decay: 0.01
+warmup_epochs: 5
+grad_clip_norm: 1.0
+
+# Paths
+checkpoint_dir: "outputs/project4/checkpoints"
+log_path: "outputs/project4/experiment_log.jsonl"
+plot_dir: "outputs/project4/plots"

@@ -1,0 +1,14 @@
+seed: 42
+output_dir: outputs/project5
+log_every_n_steps: 10
+checkpoint_every_n_epochs: 1
+model_name: gpt2
+max_new_tokens: 200
+beam_width: 4
+top_k: 50
+top_p: 0.9
+temperature: 1.0
+gsm8k_subset_size: 50
+bigbench_subset_size: 50
+benchmark_file: outputs/project5/benchmark_results.json
+log_path: outputs/project5/experiment_log.jsonl
