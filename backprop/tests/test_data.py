@@ -157,3 +157,28 @@ def test_split_disjointness_property(n: int, val_frac: float, test_frac: float) 
     assert len(train_set | val_set | test_set) == n, (
         f"Union size {len(train_set | val_set | test_set)} != n={n}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Property 5: DataLoader batch size invariant
+# Feature: backprop-improvements, Property 5
+# Validates: Requirements 9.5
+# ---------------------------------------------------------------------------
+
+@given(batch_size=st.integers(min_value=1, max_value=256))
+@settings(max_examples=100, deadline=None)
+def test_batch_size_invariant(batch_size: int) -> None:
+    """
+    For any batch_size B passed to load_california_housing, every batch returned
+    by the train DataLoader except possibly the last SHALL have first-dimension
+    size equal to B.
+    """
+    train_loader, _, _ = load_california_housing(
+        val_size=0.1, test_size=0.1, seed=42, batch_size=batch_size
+    )
+    batches = list(train_loader)
+    # Every non-last batch must have exactly batch_size samples
+    for x, _ in batches[:-1]:
+        assert x.shape[0] == batch_size, (
+            f"Expected batch size {batch_size}, got {x.shape[0]}"
+        )

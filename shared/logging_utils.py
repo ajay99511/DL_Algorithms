@@ -20,8 +20,13 @@ class JSONLogger:
     def log_config(self, config: Any) -> None:
         """Write the full config as the first log entry with metadata."""
         import torch
-        import transformers
         import numpy
+
+        try:
+            import transformers
+            transformers_version = transformers.__version__
+        except ImportError:
+            transformers_version = "not installed"
 
         # Support dataclasses, objects with __dict__, or plain dicts
         from dataclasses import asdict, is_dataclass
@@ -38,7 +43,7 @@ class JSONLogger:
             "config": config_dict,
             "library_versions": {
                 "torch": torch.__version__,
-                "transformers": transformers.__version__,
+                "transformers": transformers_version,
                 "numpy": numpy.__version__,
             },
         }

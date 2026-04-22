@@ -11,6 +11,9 @@ class MLPConfig(BaseConfig):
     hidden_dims: list[int] = field(default_factory=lambda: [128, 64, 32])
     dropout: float = 0.1
     init_strategy: str = "kaiming"  # "normal" | "xavier" | "kaiming"
+    # Early stopping
+    early_stopping_patience: int = 0
+    early_stopping_delta: float = 0.0
     # Training
     batch_size: int = 32
     grad_accum_steps: int = 4

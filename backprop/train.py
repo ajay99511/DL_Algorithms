@@ -9,6 +9,7 @@ References:
 from __future__ import annotations
 
 import argparse
+import collections
 import logging
 import math
 import warnings
@@ -19,7 +20,8 @@ import torch.nn as nn
 
 from backprop.config import MLPConfig
 from backprop.data import load_california_housing
-from backprop.model import MLP, initialize_weights
+from backprop.evaluate import evaluate as eval_fn
+from backprop.model import MLP, activation_stats, initialize_weights
 from shared.checkpointing import load_checkpoint, save_checkpoint
 from shared.config import load_config
 from shared.logging_utils import JSONLogger
@@ -34,26 +36,6 @@ except ImportError:
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
-
-
-def evaluate(model: MLP, loader: torch.utils.data.DataLoader) -> tuple[float, float]:
-    """Compute RMSE and MAE on a DataLoader. Returns (rmse, mae)."""
-    model.eval()
-    total_se = 0.0
-    total_ae = 0.0
-    n = 0
-    with torch.no_grad():
-        for x, y in loader:
-            # CPU-only: on GPU with BF16 you would use torch.autocast(device_type="cuda", dtype=torch.bfloat16)
-            preds = model(x)
-            diff = preds - y
-            total_se += float((diff ** 2).sum().item())
-            total_ae += float(diff.abs().sum().item())
-            n += y.numel()
-    rmse = math.sqrt(total_se / n) if n > 0 else float("inf")
-    mae = total_ae / n if n > 0 else float("inf")
-    model.train()
-    return rmse, mae
 
 
 def train(config: MLPConfig, resume: bool = False) -> None:
@@ -107,6 +89,7 @@ def train(config: MLPConfig, resume: bool = False) -> None:
     start_epoch = 0
     global_step = 0
     best_val_rmse = float("inf")
+    patience_counter = 0
 
     checkpoint_path = str(Path(config.checkpoint_dir) / "best.pt")
     if resume:
@@ -122,6 +105,7 @@ def train(config: MLPConfig, resume: bool = False) -> None:
         )
 
     criterion = nn.MSELoss()
+    activation_stats_buffer: collections.deque = collections.deque(maxlen=3)
 
     for epoch in range(start_epoch, config.max_epochs):
         model.train()
@@ -190,6 +174,29 @@ def train(config: MLPConfig, resume: bool = False) -> None:
                         "grad_norm": grad_norm,
                     })
 
+                    with torch.no_grad():
+                        stats = activation_stats(model, x)
+                    json_logger.log({
+                        "type": "activation_stats",
+                        "epoch": epoch,
+                        "step": global_step,
+                        "layers": stats,
+                    })
+                    activation_stats_buffer.append(stats)
+                    if (
+                        len(activation_stats_buffer) == 3
+                        and all(
+                            all(layer["dead_fraction"] == 1.0 for layer in entry.values())
+                            for entry in activation_stats_buffer
+                        )
+                    ):
+                        logger.warning(
+                            "All neurons appear to be dead for the last 3 activation-stats "
+                            "log entries (epoch=%d, step=%d).",
+                            epoch,
+                            global_step,
+                        )
+
                 if HAS_TQDM:
                     pbar.set_postfix(  # type: ignore[union-attr]
                         loss=f"{scaled_loss:.4f}",
@@ -219,7 +226,9 @@ def train(config: MLPConfig, resume: bool = False) -> None:
                 })
 
         # Validation
-        val_rmse, val_mae = evaluate(model, val_loader)
+        val_result = eval_fn(model, val_loader)
+        val_rmse = val_result.rmse
+        val_mae = val_result.mae
         avg_train_loss = epoch_loss_sum / max(epoch_batches, 1)
 
         json_logger.log({
@@ -228,6 +237,7 @@ def train(config: MLPConfig, resume: bool = False) -> None:
             "step": global_step,
             "val_rmse": val_rmse,
             "val_mae": val_mae,
+            "val_r2": val_result.r2,
             "train_loss": avg_train_loss,
         })
 
@@ -241,8 +251,9 @@ def train(config: MLPConfig, resume: bool = False) -> None:
         )
 
         # Save best checkpoint
-        if val_rmse < best_val_rmse:
+        if val_rmse < best_val_rmse - config.early_stopping_delta:
             best_val_rmse = val_rmse
+            patience_counter = 0
             save_checkpoint(
                 path=checkpoint_path,
                 model=model,
@@ -260,6 +271,41 @@ def train(config: MLPConfig, resume: bool = False) -> None:
                 "val_rmse": val_rmse,
             })
             logger.info("  ✓ New best val_rmse=%.4f — checkpoint saved.", best_val_rmse)
+        else:
+            if config.early_stopping_patience > 0:
+                patience_counter += 1
+                if patience_counter >= config.early_stopping_patience:
+                    json_logger.log({
+                        "type": "early_stop",
+                        "epoch": epoch,
+                        "step": global_step,
+                        "best_val_rmse": best_val_rmse,
+                    })
+                    logger.info(
+                        "Early stopping at epoch %d. Best val_rmse=%.4f",
+                        epoch + 1,
+                        best_val_rmse,
+                    )
+                    break
+
+        # Periodic checkpointing
+        if config.checkpoint_every_n_epochs > 0 and (epoch + 1) % config.checkpoint_every_n_epochs == 0:
+            periodic_path = str(Path(config.checkpoint_dir) / f"epoch_{epoch:04d}.pt")
+            save_checkpoint(
+                periodic_path,
+                model,
+                optimizer,
+                scheduler,
+                epoch=epoch,
+                step=global_step,
+                best_metric=best_val_rmse,
+            )
+            json_logger.log({
+                "type": "periodic_checkpoint",
+                "epoch": epoch,
+                "step": global_step,
+                "path": periodic_path,
+            })
 
     logger.info("Training complete. Best val_rmse=%.4f", best_val_rmse)
 

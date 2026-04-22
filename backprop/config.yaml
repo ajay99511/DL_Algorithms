@@ -15,6 +15,10 @@ hidden_dims: [128, 64, 32]
 dropout: 0.1
 init_strategy: "kaiming"
 
+# Early stopping
+early_stopping_patience: 0
+early_stopping_delta: 0.0
+
 # Training
 batch_size: 32
 grad_accum_steps: 4

@@ -122,3 +122,37 @@ def plot_init_comparison(logs: list[str], labels: list[str], output_path: str) -
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path, dpi=150)
     plt.close(fig)
+
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(description="Backprop visualization CLI")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # loss-curves subcommand
+    lc_parser = subparsers.add_parser("loss-curves", help="Plot train loss and val RMSE vs epoch")
+    lc_parser.add_argument("--log", required=True, help="Path to JSONL log file")
+    lc_parser.add_argument("--output", required=True, help="Path to save output PNG")
+
+    # init-comparison subcommand
+    ic_parser = subparsers.add_parser("init-comparison", help="Overlay val RMSE curves for multiple init strategies")
+    ic_parser.add_argument("--logs", nargs="+", required=True, help="Paths to JSONL log files")
+    ic_parser.add_argument("--labels", nargs="+", required=True, help="Labels for each log")
+    ic_parser.add_argument("--output", required=True, help="Path to save output PNG")
+
+    args = parser.parse_args()
+
+    if args.command == "loss-curves":
+        if not Path(args.log).exists():
+            print(f"Error: log path does not exist: {args.log}", file=sys.stderr)
+            sys.exit(1)
+        plot_loss_curves(log_path=args.log, output_path=args.output)
+
+    elif args.command == "init-comparison":
+        missing = [p for p in args.logs if not Path(p).exists()]
+        if missing:
+            print(f"Error: log path(s) do not exist: {', '.join(missing)}", file=sys.stderr)
+            sys.exit(1)
+        plot_init_comparison(logs=args.logs, labels=args.labels, output_path=args.output)
