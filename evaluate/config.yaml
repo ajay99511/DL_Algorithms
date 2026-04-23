@@ -10,6 +10,14 @@ tasks:
   hellaswag: 10
   mmlu: 5
   truthfulqa_mc: 0
+shot_counts:
+  arc_challenge: [0, 1, 5, 25]
+  hellaswag: [0, 1, 10]
+  mmlu: [0, 5]
+  truthfulqa_mc: [0]
+local_checkpoint_path: null
+perplexity_corpus: ""
 log_path: outputs/project6/experiment_log.jsonl
 report_csv: outputs/project6/results.csv
 report_md: outputs/project6/results.md
+report_narrative: outputs/project6/results_narrative.md

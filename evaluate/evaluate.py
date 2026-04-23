@@ -5,14 +5,20 @@ Benchmarks covered:
   - hellaswag:       commonsense completion — Zellers et al. 2019
   - mmlu:            world knowledge, 5-shot — Hendrycks et al. 2021
   - truthfulqa_mc:   factual accuracy / avoiding hallucination — Lin et al. 2022
+
+CLI usage:
+  python -m evaluate.evaluate [--config PATH]
 """
 
 from __future__ import annotations
 
+import argparse
+import sys
 import traceback
 from typing import Any
 
 from evaluate.config import EvalConfig
+from shared.config import load_config
 from shared.logging_utils import JSONLogger
 
 # Optional dependency — lm-evaluation-harness may not be installed
@@ -102,3 +108,37 @@ def run_evaluation(
             results[task_name] = None
 
     return results
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Run the full evaluation pipeline on configured models and benchmarks.",
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Path to a YAML config file (default: use EvalConfig defaults)",
+    )
+    args = parser.parse_args()
+
+    if args.config is not None:
+        import os
+        if not os.path.exists(args.config):
+            print(
+                f"ERROR: config file not found: {args.config}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        cfg = load_config(args.config, EvalConfig)
+    else:
+        cfg = EvalConfig()
+
+    from evaluate.pipeline import EvaluationPipeline
+    from pathlib import Path
+
+    Path(cfg.output_dir).mkdir(parents=True, exist_ok=True)
+    _logger = JSONLogger(cfg.log_path)
+    pipeline = EvaluationPipeline(config=cfg, logger=_logger)
+    pipeline.run()
